@@ -12,7 +12,7 @@
       "kernel_size": 3,
       "nlayers": 6,
       "num_mels": 80,
-      "dropout": 0.1,
+      "dropout": 0.1
     }
   },
   "data": {
