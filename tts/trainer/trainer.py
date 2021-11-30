@@ -39,8 +39,8 @@ class Trainer(BaseTrainer):
         self.data_loader = data_loader
         self.criterion_mel = criterion_mel
         self.criterion_dur = criterion_dur
-        self.vocoder = Vocoder.to(device)
-        self.galigner = GraphemeAligner.to(device)
+        self.vocoder = Vocoder().to(device)
+        self.galigner = GraphemeAligner().to(device)
         self.featurizer = MelSpectrogram(MelSpectrogramConfig()).to(device)
 
         if len_epoch is None:
@@ -76,6 +76,7 @@ class Trainer(BaseTrainer):
         for batch_idx, batch in enumerate(
                 tqdm(self.data_loader, desc="train", total=self.len_epoch)
         ):
+            print(batch)
             batch = batch.to(self.device)
             batch.melspec = self.featurizer(batch.waveform)
 
