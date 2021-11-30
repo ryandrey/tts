@@ -5,7 +5,7 @@ import torch
 
 class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
 
-    def __init__(self, root, limit=None):
+    def __init__(self, root, limit=None, *args, **kwargs):
         super().__init__(root=root)
         self._tokenizer = torchaudio.pipelines.TACOTRON2_GRIFFINLIM_CHAR_LJSPEECH.get_text_processor()
         self._index = list(range(super().__len__()))
