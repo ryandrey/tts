@@ -1,0 +1,73 @@
+{
+  "name": "default_config",
+  "n_gpu": 1,
+  "arch": {
+    "type": "FastSpeech",
+    "args": {
+      "ntoken": 200,
+      "d_model": 384,
+      "d_k": 384,
+      "num_attn_layers": 2,
+      "conv_d": 1536,
+      "kernel_size": 3,
+      "nlayers": 6,
+      "num_mels": 80,
+      "dropout": 0.1,
+    }
+  },
+  "data": {
+    "train": {
+      "batch_size": 10,
+      "num_workers": 5,
+      "datasets": [
+        {
+          "type": "LJSpeechDataset",
+          "args": {
+            "root": ".",
+            "limit": 10
+          }
+        }
+      ],
+      "collator": {
+        "type": "LJSpeechCollator",
+        "args": {}
+      }
+    }
+  },
+  "optimizer": {
+    "type": "SGD",
+    "args": {
+      "lr": 3e-4
+    }
+  },
+  "mel_loss": {
+    "type": "MelLoss",
+    "args": {}
+  },
+  "dur_loss": {
+    "type": "DurLoss",
+    "arg": {}
+  },
+  "lr_scheduler": {
+    "type": "OneCycleLR",
+    "args": {
+      "steps_per_epoch": 300,
+      "epochs": 50,
+      "anneal_strategy": "cos",
+      "max_lr": 4e-3,
+      "pct_start": 0.2
+    }
+  },
+  "trainer": {
+    "epochs": 50,
+    "save_dir": "saved/",
+    "save_period": 50,
+    "verbosity": 2,
+    "monitor": "min mel_loss",
+    "early_stop": 100,
+    "visualize": "wandb",
+    "wandb_project": "tts_project",
+    "len_epoch": 500,
+    "grad_norm_clip": 10
+  }
+}

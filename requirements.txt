@@ -1,0 +1,14 @@
+torch
+torchvision
+torchaudio
+googledrivedownloader
+numpy
+tqdm
+tensorboard
+matplotlib
+
+
+pandas
+librosa
+datasets
+wandb
