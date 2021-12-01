@@ -122,7 +122,7 @@ class Trainer(BaseTrainer):
                 break
         log = self.train_metrics.result()
 
-        #self._check_examples()
+        self._check_examples()
 
         return log
 
@@ -151,7 +151,17 @@ class Trainer(BaseTrainer):
         return mel_loss.item(), dur_loss.item()
 
     def _check_examples(self):
-        # TODO: implement _check_examples
+        # TODO: implement right valid epoch
+        self.model.eval()
+        with torch.no_grad():
+            for batch in self.data_loader:
+                batch.to(self.device)
+                output = self.model(batch.tokens)
+                break
+            prediction_wav = self.vocoder.inference(output[0].unsqueeze(0).transpose(-1, -2)).cpu()
+            self._log_spectrogram(output[0].unsqueeze(0).transpose(-1, -2))
+            self._log_audio("pred_wav", prediction_wav)
+            self._log_audio("true_wav", batch.waveform[0])
         raise NotImplementedError
 
     def _progress(self, batch_idx):
@@ -164,15 +174,12 @@ class Trainer(BaseTrainer):
             total = self.len_epoch
         return base.format(current, total, 100.0 * current / total)
 
-    def _log_spectrogram(self, spectrogram_batch):
-        # TODO: implement _log_spectrogram
-        raise NotImplementedError
-        spectrogram = random.choice(spectrogram_batch)
+    def _log_spectrogram(self, spectrogram):
         image = PIL.Image.open(plot_spectrogram_to_buf(spectrogram.cpu().log()))
         self.writer.add_image("spectrogram", ToTensor()(image))
 
-    def _log_audio(self):
-        # TODO: implement _log_audio
+    def _log_audio(self, audio_name, wav):
+        self.writer.add_audio(audio_name, wav, sample_rate=22050)
         raise NotImplementedError
 
     @torch.no_grad()
