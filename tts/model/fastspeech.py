@@ -134,7 +134,7 @@ class Length_Regulator(nn.Module):
         self.alpha = alpha
         self.dur_pred = DurationPredictor(d_model, conv_d, kernel_size, dropout)
 
-    def LR(self, x, dur_preds, mel_max_len):
+    def LR(self, x, dur_preds):
         expand_max_len = int(torch.max(
             torch.sum(dur_preds, -1), -1)[0])
         alignment = torch.zeros(dur_preds.size(0),
@@ -145,24 +145,20 @@ class Length_Regulator(nn.Module):
         alignment = torch.from_numpy(alignment).to(x.device)
 
         output = alignment @ x
-        if mel_max_len:
-            output = F.pad(
-                output, (0, 0, 0, mel_max_len - output.size(1), 0, 0))
+
         return output
 
-    def forward(self, x, target=None, mel_max_len=None):
+    def forward(self, x, target=None):
         dur_preds = self.dur_pred(x).squeeze(-1)
 
         if target is not None:
-            output = self.LR(x, target, mel_max_len)
+            output = self.LR(x, target)
             return output, dur_preds
         else:
-            dur_preds = ((dur_preds + 0.5) * self.alpha).int()
-            output = self.LR(x, dur_preds, mel_max_len)
-            mel_pos = torch.stack(
-                [torch.Tensor([i + 1 for i in range(output.size(1))])]).long().to(x.device)
+            dur_preds = (dur_preds * self.alpha).int()
+            output = self.LR(x, dur_preds)
 
-            return output, mel_pos
+            return output, None
 
 
 class FastSpeech(nn.Module):
@@ -207,8 +203,7 @@ class FastSpeech(nn.Module):
         output = self.encoder(output)
 
         lr_output, dur_preds = self.length_regulator(output,
-                                                     target=target,
-                                                     mel_max_len=self.mel_max)
+                                                     target=target)
         output = self.mel_pos_enc(lr_output)
         output = self.decoder(output)
         output = self.head(output)
