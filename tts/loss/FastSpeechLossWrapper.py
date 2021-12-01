@@ -11,7 +11,7 @@ class DurLoss(nn.Module):
     def forward(self, batch):
         min_len = min(batch.durations.shape[-1], batch.durations_prediction.shape[-1])
 
-        return self.loss(batch.durations[:, :min_len], batch.durations_prediction[:, :min_len])
+        return self.loss(batch.durations[:, :min_len], batch.durations_prediction.exp()[:, :min_len])
 
 
 class MelLoss(nn.Module):

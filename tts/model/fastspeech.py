@@ -123,7 +123,7 @@ def create_alignment(base_mat, dur_preds):
         count = 0
         for j in range(L):
             for k in range(dur_preds[i][j]):
-                base_mat[i][count+k][j] = 1
+                base_mat[i][count + k][j] = 1
             count = count + dur_preds[i][j]
     return base_mat
 
@@ -150,12 +150,14 @@ class Length_Regulator(nn.Module):
 
     def forward(self, x, target=None):
         dur_preds = self.dur_pred(x).squeeze(-1)
+        print(dur_preds.shape)
 
         if target is not None:
+            print(x.shape, target.shape)
             output = self.LR(x, target)
             return output, dur_preds
         else:
-            dur_preds = (dur_preds * self.alpha).int()
+            dur_preds = (dur_preds * self.alpha).exp().int()
             output = self.LR(x, dur_preds)
 
             return output, None
@@ -186,7 +188,7 @@ class FastSpeech(nn.Module):
             first_FFTblocks.append(FFTBlock(d_model, d_k, num_attn_layers, conv_d, kernel_size, dropout))
         self.encoder = nn.Sequential(*first_FFTblocks)
 
-        self.length_regulator = Length_Regulator(d_model, d_k, kernel_size, dropout, alpha)
+        self.length_regulator = Length_Regulator(d_model, 256, kernel_size, dropout, alpha)
 
         self.mel_pos_enc = PositionalEncoding(d_model, dropout, mel_max)
 
@@ -198,19 +200,22 @@ class FastSpeech(nn.Module):
         self.head = nn.Linear(d_model, num_mels)
 
     def forward(self, x, target):
+        print()
         output = self.embedding(x)
         output = self.phoneme_pos_enc(output)
         output = self.encoder(output)
 
         lr_output, dur_preds = self.length_regulator(output,
                                                      target=target)
+
+        print(lr_output.shape)
         output = self.mel_pos_enc(lr_output)
+        print(output.shape)
         output = self.decoder(output)
+        print(output.shape)
         output = self.head(output)
+        print(output.shape)
 
         if self.training:
             return output, dur_preds
         return output
-
-
-

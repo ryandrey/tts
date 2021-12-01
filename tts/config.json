@@ -4,27 +4,27 @@
   "arch": {
     "type": "FastSpeech",
     "args": {
-      "ntoken": 51,
-      "d_model": 192,
-      "d_k": 192,
+      "ntoken": 200,
+      "d_model": 384,
+      "d_k": 384,
       "num_attn_layers": 2,
-      "conv_d": 768,
+      "conv_d": 1536,
       "kernel_size": 3,
-      "nlayers": 4,
+      "nlayers": 6,
       "num_mels": 80,
       "dropout": 0.1
     }
   },
   "data": {
     "train": {
-      "batch_size": 5,
+      "batch_size": 10,
       "num_workers": 5,
       "datasets": [
         {
           "type": "LJSpeechDataset",
           "args": {
             "root": ".",
-            "limit": 5
+            "limit": 10
           }
         }
       ],
@@ -35,9 +35,11 @@
     }
   },
   "optimizer": {
-    "type": "SGD",
+    "type": "Adam",
     "args": {
-      "lr": 3e-4
+      "lr": 1e-3,
+      "betas": [0.9, 0.98],
+      "eps": 1e-9
     }
   },
   "mel_loss": {
@@ -61,7 +63,7 @@
   "trainer": {
     "epochs": 50,
     "save_dir": "saved/",
-    "save_period": 50,
+    "save_period": 10,
     "verbosity": 2,
     "monitor": "min mel_loss",
     "early_stop": 100,
