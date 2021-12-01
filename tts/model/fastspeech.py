@@ -150,10 +150,8 @@ class Length_Regulator(nn.Module):
 
     def forward(self, x, target=None):
         dur_preds = self.dur_pred(x).squeeze(-1)
-        print(dur_preds.shape)
 
         if target is not None:
-            print(x.shape, target.shape)
             output = self.LR(x, target)
             return output, dur_preds
         else:
@@ -208,13 +206,9 @@ class FastSpeech(nn.Module):
         lr_output, dur_preds = self.length_regulator(output,
                                                      target=target)
 
-        print(lr_output.shape)
         output = self.mel_pos_enc(lr_output)
-        print(output.shape)
         output = self.decoder(output)
-        print(output.shape)
         output = self.head(output)
-        print(output.shape)
 
         if self.training:
             return output, dur_preds
