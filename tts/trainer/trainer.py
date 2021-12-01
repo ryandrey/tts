@@ -95,7 +95,7 @@ class Trainer(BaseTrainer):
                     metrics=self.train_metrics,
                 )
             except RuntimeError as e:
-                #print(batch)
+                # print(batch)
                 print(e)
                 if "out of memory" in str(e) and self.skip_oom:
                     self.logger.warning("OOM on batch. Skipping batch.")
@@ -156,13 +156,12 @@ class Trainer(BaseTrainer):
         with torch.no_grad():
             for batch in self.data_loader:
                 batch.to(self.device)
-                output = self.model(batch.tokens)
+                output = self.model(batch.tokens, None)
                 break
             prediction_wav = self.vocoder.inference(output[0].unsqueeze(0).transpose(-1, -2)).cpu()
-            self._log_spectrogram(output[0].unsqueeze(0).transpose(-1, -2))
+            self._log_spectrogram(output[:1, :, :])
             self._log_audio("pred_wav", prediction_wav)
             self._log_audio("true_wav", batch.waveform[0])
-        raise NotImplementedError
 
     def _progress(self, batch_idx):
         base = "[{}/{} ({:.0f}%)]"
@@ -174,13 +173,13 @@ class Trainer(BaseTrainer):
             total = self.len_epoch
         return base.format(current, total, 100.0 * current / total)
 
-    def _log_spectrogram(self, spectrogram):
+    def _log_spectrogram(self, spectrogram_batch):
+        spectrogram = random.choice(spectrogram_batch)
         image = PIL.Image.open(plot_spectrogram_to_buf(spectrogram.cpu().log()))
         self.writer.add_image("spectrogram", ToTensor()(image))
 
     def _log_audio(self, audio_name, wav):
         self.writer.add_audio(audio_name, wav, sample_rate=22050)
-        raise NotImplementedError
 
     @torch.no_grad()
     def get_grad_norm(self, norm_type=2):

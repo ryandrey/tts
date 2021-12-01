@@ -158,7 +158,7 @@ class Length_Regulator(nn.Module):
             return output, dur_preds
         else:
             dur_preds = ((dur_preds + 0.5) * self.alpha).int()
-            output = self.LR(x, dur_preds)
+            output = self.LR(x, dur_preds, mel_max_len)
             mel_pos = torch.stack(
                 [torch.Tensor([i + 1 for i in range(output.size(1))])]).long().to(x.device)
 
