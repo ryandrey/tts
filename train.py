@@ -15,7 +15,7 @@ from tts.utils.parse_config import ConfigParser
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # fix random seeds for reproducibility
-SEED = 123
+SEED = 112
 torch.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
@@ -56,7 +56,7 @@ def main(config):
         optimizer,
         config=config,
         device=device,
-        data_loader=dataloaders,
+        data_loader=dataloaders["train"],
         lr_scheduler=lr_scheduler,
         len_epoch=config["trainer"].get("len_epoch", None)
     )

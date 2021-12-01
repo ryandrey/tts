@@ -6,7 +6,7 @@ from tts.collate_fn import Batch
 class DurLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.loss = nn.MSELoss
+        self.loss = nn.MSELoss()
 
     def forward(self, batch):
         min_len = min(batch.durations.shape[-1], batch.durations_prediction.shape[-1])
@@ -17,7 +17,7 @@ class DurLoss(nn.Module):
 class MelLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.loss = nn.MSELoss
+        self.loss = nn.MSELoss()
 
     def forward(self, batch):
         min_len = min(batch.melspec.shape[-1], batch.melspec_prediction.shape[-2])

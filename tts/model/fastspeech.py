@@ -36,7 +36,7 @@ class Attention(nn.Module):
         Q = self.Q_layer(x)
         K = self.K_layer(x)
         V = self.V_layer(x)
-        QK = F.softmax(torch.matmul(Q, K.traspose(1, 2)) / self.d_k ** 0.5, dim=-1)
+        QK = F.softmax(torch.matmul(Q, K.transpose(1, 2)) / self.d_k ** 0.5, dim=-1)
         return torch.matmul(QK, V)
 
 
@@ -135,8 +135,8 @@ class Length_Regulator(nn.Module):
         self.dur_pred = DurationPredictor(d_model, conv_d, kernel_size, dropout)
 
     def LR(self, x, dur_preds, mel_max_len):
-        expand_max_len = torch.max(
-            torch.sum(dur_preds, -1), -1)[0]
+        expand_max_len = int(torch.max(
+            torch.sum(dur_preds, -1), -1)[0])
         alignment = torch.zeros(dur_preds.size(0),
                                 expand_max_len,
                                 dur_preds.size(1)).numpy()
@@ -151,7 +151,7 @@ class Length_Regulator(nn.Module):
         return output
 
     def forward(self, x, target=None, mel_max_len=None):
-        dur_preds = self.dur_pred(x)
+        dur_preds = self.dur_pred(x).squeeze(-1)
 
         if target is not None:
             output = self.LR(x, target, mel_max_len)
@@ -175,9 +175,9 @@ class FastSpeech(nn.Module):
                  nlayers,
                  num_mels,
                  dropout=0.3,
-                 phoneme_max=5000,
+                 phoneme_max=2000,
                  alpha=1.0,
-                 mel_max=5000
+                 mel_max=2000
                  ):
         super().__init__()
         self.mel_max = mel_max
@@ -190,7 +190,7 @@ class FastSpeech(nn.Module):
             first_FFTblocks.append(FFTBlock(d_model, d_k, num_attn_layers, conv_d, kernel_size, dropout))
         self.encoder = nn.Sequential(*first_FFTblocks)
 
-        self.length_regulator = Length_Regulator(d_model, conv_d, kernel_size, dropout, alpha)
+        self.length_regulator = Length_Regulator(d_model, d_k, kernel_size, dropout, alpha)
 
         self.mel_pos_enc = PositionalEncoding(d_model, dropout, mel_max)
 
@@ -201,13 +201,13 @@ class FastSpeech(nn.Module):
 
         self.head = nn.Linear(d_model, num_mels)
 
-    def forward(self, x: Batch):
-        output = self.embedding(x.tokens)
+    def forward(self, x, target):
+        output = self.embedding(x)
         output = self.phoneme_pos_enc(output)
         output = self.encoder(output)
 
         lr_output, dur_preds = self.length_regulator(output,
-                                                     target=x.durations,
+                                                     target=target,
                                                      mel_max_len=self.mel_max)
         output = self.mel_pos_enc(lr_output)
         output = self.decoder(output)

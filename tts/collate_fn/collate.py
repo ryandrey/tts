@@ -26,10 +26,7 @@ class Batch:
         self.waveform_length = self.waveform_length.to(device)
         self.tokens = self.tokens.to(device)
         self.token_lengths = self.token_lengths.to(device)
-        self.durations = self.durations.to(device)
-        self.durations_prediction = self.durations_prediction.to(device)
-        self.melspec = self.melspec.to(device)
-        self.durations_prediction = self.melspec_prediciton.to(device)
+
         return self
 
 

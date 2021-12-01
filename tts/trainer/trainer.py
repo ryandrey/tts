@@ -76,7 +76,6 @@ class Trainer(BaseTrainer):
         for batch_idx, batch in enumerate(
                 tqdm(self.data_loader, desc="train", total=self.len_epoch)
         ):
-            print(batch)
             batch = batch.to(self.device)
             batch.melspec = self.featurizer(batch.waveform)
 
@@ -85,12 +84,10 @@ class Trainer(BaseTrainer):
 
             with torch.no_grad():
                 durations = self.galigner(
-                    batch.waveform, batch.waveforn_length, batch.transcript
+                    batch.waveform, batch.waveform_length, batch.transcript
                 ).to(self.device)
 
-                durations = durations * batch.melspec_length.unsqueeze(-1)
-
-                batch.durations = durations
+                batch.durations = durations * batch.melspec_length.unsqueeze(-1)
             try:
                 ml, dl = self.process_batch(
                     batch,
@@ -98,6 +95,8 @@ class Trainer(BaseTrainer):
                     metrics=self.train_metrics,
                 )
             except RuntimeError as e:
+                #print(batch)
+                print(e)
                 if "out of memory" in str(e) and self.skip_oom:
                     self.logger.warning("OOM on batch. Skipping batch.")
                     for p in self.model.parameters():
@@ -130,15 +129,16 @@ class Trainer(BaseTrainer):
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker):
         batch = batch.to(self.device)
         self.optimizer.zero_grad()
-        outputs, dur_preds = self.model(**batch)
+        outputs, dur_preds = self.model(batch.tokens, batch.durations.int())
 
         batch.melspec_prediction = outputs
         batch.durations_prediction = dur_preds
+        batch.durations = batch.durations.float()
 
-        mel_loss = self.criterion_mel(**batch)
-        dur_loss = self.criterion_dur(**batch)
+        mel_loss = self.criterion_mel(batch)
+        dur_loss = self.criterion_dur(batch)
 
-        mel_loss.backward()
+        mel_loss.backward(retain_graph=True)
         dur_loss.backward()
         self._clip_grad_norm()
         self.optimizer.step()

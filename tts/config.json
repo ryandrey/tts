@@ -4,27 +4,27 @@
   "arch": {
     "type": "FastSpeech",
     "args": {
-      "ntoken": 200,
-      "d_model": 384,
-      "d_k": 384,
+      "ntoken": 51,
+      "d_model": 192,
+      "d_k": 192,
       "num_attn_layers": 2,
-      "conv_d": 1536,
+      "conv_d": 768,
       "kernel_size": 3,
-      "nlayers": 6,
+      "nlayers": 4,
       "num_mels": 80,
       "dropout": 0.1
     }
   },
   "data": {
     "train": {
-      "batch_size": 10,
+      "batch_size": 5,
       "num_workers": 5,
       "datasets": [
         {
           "type": "LJSpeechDataset",
           "args": {
             "root": ".",
-            "limit": 10
+            "limit": 5
           }
         }
       ],
