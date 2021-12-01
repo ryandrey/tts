@@ -24,37 +24,56 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
-class Attention(nn.Module):
-    def __init__(self, d_model, d_k):
-        super().__init__()
-        self.Q_layer = nn.Linear(d_model, d_k)
-        self.K_layer = nn.Linear(d_model, d_k)
-        self.V_layer = nn.Linear(d_model, d_k)
-        self.d_k = d_k
+class ScaleDotProduct(nn.Module):
 
-    def forward(self, x):
-        Q = self.Q_layer(x)
-        K = self.K_layer(x)
-        V = self.V_layer(x)
-        QK = F.softmax(torch.matmul(Q, K.transpose(1, 2)) / self.d_k ** 0.5, dim=-1)
-        return torch.matmul(QK, V)
+    def forward(self, q, k, v):
+        d_k = q.size(-1)
+        QK = q.matmul(k.transpose(-2, -1)) / math.sqrt(d_k)
+        attention = F.softmax(QK)
+        return attention.matmul(v)
 
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, d_k, num_attn_layers):
         super().__init__()
-        self.head = nn.ModuleList()
-        for i in range(num_attn_layers):
-            self.head.append(Attention(d_model, d_k))
-        self.tail = nn.Linear(num_attn_layers * d_k, d_model)
+        self.num_attn_layers = num_attn_layers
+        self.lin_q = nn.Linear(d_model, d_k)
+        self.lin_k = nn.Linear(d_model, d_k)
+        self.lin_v = nn.Linear(d_model, d_k)
+        self.last_lin = nn.Linear(d_k, d_model)
+        self.activation = nn.ReLU()
 
     def forward(self, x):
-        tmp = []
-        for module in self.head:
-            tmp.append(module(x))
-        out = torch.cat(tmp, dim=-1)
-        out = self.tail(out)
-        return out
+        q, k, v = self.lin_q(x), self.lin_k(x), self.lin_v(x)
+        q = self.activation(q)
+        k = self.activation(k)
+        v = self.activation(v)
+
+        q = self._reshape_to_batches(q)
+        k = self._reshape_to_batches(k)
+        v = self._reshape_to_batches(v)
+
+        z = ScaleDotProduct()(q, k, v)
+        z = self._reshape_from_batches(z)
+        z = self.last_lin(z)
+        z = self.activation(z)
+
+        return z
+
+    def _reshape_to_batches(self, x):
+        batch_size, seq_len, in_feature = x.size()
+        sub_dim = in_feature // self.num_attn_layers
+        return x.reshape(batch_size, seq_len, self.num_attn_layers, sub_dim) \
+            .permute(0, 2, 1, 3) \
+            .reshape(batch_size * self.num_attn_layers, seq_len, sub_dim)
+
+    def _reshape_from_batches(self, x):
+        batch_size, seq_len, in_feature = x.size()
+        batch_size //= self.num_attn_layers
+        out_dim = in_feature * self.num_attn_layers
+        return x.reshape(batch_size, self.num_attn_layers, seq_len, in_feature) \
+            .permute(0, 2, 1, 3) \
+            .reshape(batch_size, seq_len, out_dim)
 
 
 class Conv1D_FFT(nn.Module):

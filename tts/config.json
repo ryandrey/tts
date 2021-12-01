@@ -4,7 +4,7 @@
   "arch": {
     "type": "FastSpeech",
     "args": {
-      "ntoken": 200,
+      "ntoken": 51,
       "d_model": 384,
       "d_k": 384,
       "num_attn_layers": 2,
