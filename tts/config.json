@@ -1,5 +1,5 @@
 {
-  "name": "default_config_fft_2",
+  "name": "fast_speech",
   "n_gpu": 1,
   "arch": {
     "type": "FastSpeech",
@@ -10,21 +10,20 @@
       "num_attn_layers": 2,
       "conv_d": 1536,
       "kernel_size": 3,
-      "nlayers": 2,
+      "nlayers": 6,
       "num_mels": 80,
       "dropout": 0.1
     }
   },
   "data": {
     "train": {
-      "batch_size": 8,
+      "batch_size": 32,
       "num_workers": 5,
       "datasets": [
         {
           "type": "LJSpeechDataset",
           "args": {
-            "root": ".",
-            "limit": 8
+            "root": "."
           }
         }
       ],
@@ -61,15 +60,15 @@
     }
   },
   "trainer": {
-    "epochs": 50,
+    "epochs": 400,
     "save_dir": "saved/",
-    "save_period": 10,
+    "save_period": 50,
     "verbosity": 2,
     "monitor": "min mel_loss",
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "tts_project",
-    "len_epoch": 100,
+    "len_epoch": 200,
     "grad_norm_clip": 10
   }
 }

@@ -1,7 +1,9 @@
+import io
 import random
 from random import shuffle
 
 import PIL
+import matplotlib.pyplot as plt
 import torch
 from torch.nn.utils import clip_grad_norm_
 from torchvision.transforms import ToTensor
@@ -151,15 +153,57 @@ class Trainer(BaseTrainer):
         return mel_loss.item(), dur_loss.item()
 
     def _check_examples(self):
+
+        def get_attention(name):
+            def hook(model, input, output):
+                attentions[name].append(output[0].detach())
+
+            return hook
+
         # TODO: implement right valid epoch
         self.model.eval()
         with torch.no_grad():
             for batch in self.data_loader:
                 batch.to(self.device)
-                output = self.model(batch.tokens, None)
                 break
+
+            handles = {"enc": [], "dec": []}
+            attentions = {"enc": [], "dec": []}
+            n_layers = self.config["arch"]["args"]["nlayers"]
+            attn_layers = self.config["arch"]["args"]["num_attn_layers"]
+            for i in range(n_layers):
+                handl = self.model.encoder[i].multi_head_attention.register_forward_hook(
+                    get_attention("enc")
+                )
+                handles["enc"].append(handl)
+                handl = self.model.decoder[i].multi_head_attention.register_forward_hook(
+                    get_attention("dec")
+                )
+                handles["dec"].append(handl)
+
+            output = self.model(batch.tokens, None)
+
+            for i in range(n_layers):
+                plt.subplot(1, 2 * n_layers, i + 1)
+                plt.imshow(attentions["enc"][i].cpu())
+                plt.title(f"Encoder, {i + 1} block")
+
+                plt.subplot(1, 2 * n_layers, n_layers + i + 1)
+                plt.imshow(attentions["dec"][i].cpu())
+                plt.title(f"Decoder, {i + 1} block")
+            for i in range(n_layers):
+                handles["enc"][0].remove()
+                handles["dec"][0].remove()
+
+            attention = io.BytesIO()
+            plt.savefig(attention, format="png")
+            attention.seek(0)
+
+            self._log_attention(attention)
+
             prediction_wav = self.vocoder.inference(output[0].unsqueeze(0).transpose(-1, -2)).cpu()
-            self._log_spectrogram(output[:1, :, :])
+
+            self._log_spectrogram(output[0].transpose(-1, -2))
             self._log_audio("pred_wav", prediction_wav)
             self._log_audio("true_wav", batch.waveform[0])
 
@@ -173,9 +217,12 @@ class Trainer(BaseTrainer):
             total = self.len_epoch
         return base.format(current, total, 100.0 * current / total)
 
-    def _log_spectrogram(self, spectrogram_batch):
-        spectrogram = random.choice(spectrogram_batch)
-        image = PIL.Image.open(plot_spectrogram_to_buf(spectrogram.cpu().log()))
+    def _log_attention(self, buf):
+        image = PIL.Image.open(buf).rotate(270, expand=True)
+        self.writer.add_image("Attentions", (ToTensor()(image)).transpose(-1, -2).flip(-2))
+
+    def _log_spectrogram(self, spectrogram):
+        image = PIL.Image.open(plot_spectrogram_to_buf(spectrogram.cpu()))
         self.writer.add_image("spectrogram", ToTensor()(image))
 
     def _log_audio(self, audio_name, wav):

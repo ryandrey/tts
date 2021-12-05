@@ -120,13 +120,13 @@ class FFTBlock(nn.Module):
 
 
 class DurationPredictor(nn.Module):
-    def __init__(self, d_model, conv_d, kernel_size, dropout):
+    def __init__(self, d_model, kernel_size, dropout):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Conv1d(d_model, conv_d, kernel_size, padding="same"),
+            Conv1D_FFT(d_model, d_model, kernel_size),
             nn.LayerNorm(d_model),
             nn.Dropout(dropout),
-            nn.Conv1d(d_model, conv_d, kernel_size, padding="same"),
+            Conv1D_FFT(d_model, d_model, kernel_size),
             nn.LayerNorm(d_model),
             nn.Dropout(dropout),
             nn.Linear(d_model, 1)
@@ -148,19 +148,19 @@ def create_alignment(base_mat, dur_preds):
 
 
 class Length_Regulator(nn.Module):
-    def __init__(self, d_model, conv_d, kernel_size, dropout=0.1, alpha=1.0):
+    def __init__(self, d_model, kernel_size, dropout=0.1, alpha=1.0):
         super().__init__()
         self.alpha = alpha
-        self.dur_pred = DurationPredictor(d_model, conv_d, kernel_size, dropout)
+        self.dur_pred = DurationPredictor(d_model, kernel_size, dropout)
 
     def LR(self, x, dur_preds):
         expand_max_len = int(torch.max(
             torch.sum(dur_preds, -1), -1)[0])
-        alignment = torch.zeros(dur_preds.size(0),
+        alignment = torch.zeros(x.size(0),
                                 expand_max_len,
-                                dur_preds.size(1)).numpy()
+                                x.size(1)).numpy()
         alignment = create_alignment(alignment,
-                                     dur_preds.cpu().numpy())
+                                     dur_preds[:, :min(x.size(1), dur_preds.size(1))].cpu().numpy())
         alignment = torch.from_numpy(alignment).to(x.device)
 
         output = alignment @ x
@@ -205,7 +205,7 @@ class FastSpeech(nn.Module):
             first_FFTblocks.append(FFTBlock(d_model, d_k, num_attn_layers, conv_d, kernel_size, dropout))
         self.encoder = nn.Sequential(*first_FFTblocks)
 
-        self.length_regulator = Length_Regulator(d_model, 384, kernel_size, dropout, alpha)
+        self.length_regulator = Length_Regulator(d_model, kernel_size, dropout, alpha)
 
         self.mel_pos_enc = PositionalEncoding(d_model, dropout, mel_max)
 
@@ -217,7 +217,6 @@ class FastSpeech(nn.Module):
         self.head = nn.Linear(d_model, num_mels)
 
     def forward(self, x, target):
-        print()
         output = self.embedding(x)
         output = self.phoneme_pos_enc(output)
         output = self.encoder(output)
