@@ -123,10 +123,10 @@ class DurationPredictor(nn.Module):
     def __init__(self, d_model, conv_d, kernel_size, dropout):
         super().__init__()
         self.net = nn.Sequential(
-            Conv1D_FFT(d_model, conv_d, kernel_size),
+            nn.Conv1d(d_model, conv_d, kernel_size, padding="same"),
             nn.LayerNorm(d_model),
             nn.Dropout(dropout),
-            Conv1D_FFT(d_model, conv_d, kernel_size),
+            nn.Conv1d(d_model, conv_d, kernel_size, padding="same"),
             nn.LayerNorm(d_model),
             nn.Dropout(dropout),
             nn.Linear(d_model, 1)
@@ -205,7 +205,7 @@ class FastSpeech(nn.Module):
             first_FFTblocks.append(FFTBlock(d_model, d_k, num_attn_layers, conv_d, kernel_size, dropout))
         self.encoder = nn.Sequential(*first_FFTblocks)
 
-        self.length_regulator = Length_Regulator(d_model, 256, kernel_size, dropout, alpha)
+        self.length_regulator = Length_Regulator(d_model, 384, kernel_size, dropout, alpha)
 
         self.mel_pos_enc = PositionalEncoding(d_model, dropout, mel_max)
 

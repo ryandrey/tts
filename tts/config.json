@@ -1,5 +1,5 @@
 {
-  "name": "default_config",
+  "name": "default_config_fft_2",
   "n_gpu": 1,
   "arch": {
     "type": "FastSpeech",
@@ -10,21 +10,21 @@
       "num_attn_layers": 2,
       "conv_d": 1536,
       "kernel_size": 3,
-      "nlayers": 6,
+      "nlayers": 2,
       "num_mels": 80,
       "dropout": 0.1
     }
   },
   "data": {
     "train": {
-      "batch_size": 16,
+      "batch_size": 8,
       "num_workers": 5,
       "datasets": [
         {
           "type": "LJSpeechDataset",
           "args": {
             "root": ".",
-            "limit": 16
+            "limit": 8
           }
         }
       ],
@@ -54,7 +54,7 @@
     "type": "OneCycleLR",
     "args": {
       "steps_per_epoch": 300,
-      "epochs": 50,
+      "epochs": 10,
       "anneal_strategy": "cos",
       "max_lr": 4e-3,
       "pct_start": 0.2
@@ -69,7 +69,7 @@
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "tts_project",
-    "len_epoch": 500,
+    "len_epoch": 100,
     "grad_norm_clip": 10
   }
 }
