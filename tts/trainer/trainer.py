@@ -97,8 +97,6 @@ class Trainer(BaseTrainer):
                     metrics=self.train_metrics,
                 )
             except RuntimeError as e:
-                # print(batch)
-                print(e)
                 if "out of memory" in str(e) and self.skip_oom:
                     self.logger.warning("OOM on batch. Skipping batch.")
                     for p in self.model.parameters():
@@ -160,7 +158,6 @@ class Trainer(BaseTrainer):
 
             return hook
 
-        # TODO: implement right valid epoch
         self.model.eval()
         with torch.no_grad():
             for batch in self.data_loader:
@@ -170,7 +167,6 @@ class Trainer(BaseTrainer):
             handles = {"enc": [], "dec": []}
             attentions = {"enc": [], "dec": []}
             n_layers = self.config["arch"]["args"]["nlayers"]
-            attn_layers = self.config["arch"]["args"]["num_attn_layers"]
             for i in range(n_layers):
                 handl = self.model.encoder[i].multi_head_attention.register_forward_hook(
                     get_attention("enc")
@@ -191,9 +187,8 @@ class Trainer(BaseTrainer):
                 plt.subplot(1, 2 * n_layers, n_layers + i + 1)
                 plt.imshow(attentions["dec"][i].cpu())
                 plt.title(f"Decoder, {i + 1} block")
-            for i in range(n_layers):
-                handles["enc"][0].remove()
-                handles["dec"][0].remove()
+                handles["enc"][i].remove()
+                handles["dec"][i].remove()
 
             attention = io.BytesIO()
             plt.savefig(attention, format="png")
