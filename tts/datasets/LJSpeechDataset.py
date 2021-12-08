@@ -1,6 +1,7 @@
 import random
 import torchaudio
 import torch
+import numpy as np
 
 
 class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
@@ -21,7 +22,9 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
 
         tokens, token_lengths = self._tokenizer(transcript)
 
-        return waveform, waveform_length, transcript, tokens, token_lengths
+        durations = torch.from_numpy(np.load(f'./alignments/{self._index[index]}.npy'))
+
+        return waveform, waveform_length, transcript, tokens, token_lengths, durations
 
     def __len__(self):
         if self.limit is None:

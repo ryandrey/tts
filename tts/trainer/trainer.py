@@ -84,12 +84,13 @@ class Trainer(BaseTrainer):
             batch.melspec_length = batch.melspec.shape[-1] - batch.melspec.eq(-11.5129251)[:, 0, :].sum(dim=-1)
             batch.melspec_length = batch.melspec_length
 
-            with torch.no_grad():
-                durations = self.galigner(
-                    batch.waveform, batch.waveform_length, batch.transcript
-                ).to(self.device)
+            if batch.durations is None:
+                with torch.no_grad():
+                    durations = self.galigner(
+                        batch.waveform, batch.waveform_length, batch.transcript
+                    ).to(self.device)
 
-                batch.durations = durations * batch.melspec_length.unsqueeze(-1)
+                    batch.durations = durations * batch.melspec_length.unsqueeze(-1)
             try:
                 ml, dl = self.process_batch(
                     batch,
@@ -177,7 +178,7 @@ class Trainer(BaseTrainer):
                 )
                 handles["dec"].append(handl)
 
-            output = self.model(batch.tokens, None)
+            output = self.model(batch.tokens[:1], None)
 
             for i in range(n_layers):
                 plt.subplot(1, 2 * n_layers, i + 1)

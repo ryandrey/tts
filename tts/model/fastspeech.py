@@ -29,7 +29,7 @@ class ScaleDotProduct(nn.Module):
     def forward(self, q, k, v):
         d_k = q.size(-1)
         QK = q.matmul(k.transpose(-2, -1)) / math.sqrt(d_k)
-        attention = F.softmax(QK)
+        attention = F.softmax(QK, dim=-1)
         return attention.matmul(v)
 
 
@@ -122,18 +122,26 @@ class FFTBlock(nn.Module):
 class DurationPredictor(nn.Module):
     def __init__(self, d_model, kernel_size, dropout):
         super().__init__()
-        self.net = nn.Sequential(
-            Conv1D_FFT(d_model, d_model, kernel_size),
-            nn.LayerNorm(d_model),
-            nn.Dropout(dropout),
-            Conv1D_FFT(d_model, d_model, kernel_size),
-            nn.LayerNorm(d_model),
-            nn.Dropout(dropout),
-            nn.Linear(d_model, 1)
-        )
+        self.conv_1 = nn.Conv1d(d_model, d_model, kernel_size, padding="same")
+        self.norm_1 = nn.LayerNorm(d_model)
+        self.drop_1 = nn.Dropout(dropout)
+
+        self.conv_2 = nn.Conv1d(d_model, d_model, kernel_size, padding="same")
+        self.norm_2 = nn.LayerNorm(d_model)
+        self.drop_2 = nn.Dropout(dropout)
+
+        self.lin = nn.Linear(d_model, 1)
 
     def forward(self, x):
-        return self.net(x)
+        out = self.conv_1(x.transpose(-1, -2))
+        out = self.norm_1(out.transpose(-1, -2))
+        out = self.drop_1(out)
+
+        out = self.conv_2(out.transpose(-1, -2))
+        out = self.norm_2(out.transpose(-1, -2))
+        out = self.drop_2(out)
+        out = self.lin(out)
+        return out
 
 
 def create_alignment(base_mat, dur_preds):
