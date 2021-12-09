@@ -1,5 +1,5 @@
 {
-  "name": "fast_speech",
+  "name": "fast_speech_last_run",
   "n_gpu": 1,
   "arch": {
     "type": "FastSpeech",
@@ -23,7 +23,7 @@
         {
           "type": "LJSpeechDataset",
           "args": {
-            "root": "."
+            "root": "/home/jupyter/mnt/datasets/LJSpeech-1.1"
           }
         }
       ],
@@ -52,15 +52,15 @@
   "lr_scheduler": {
     "type": "OneCycleLR",
     "args": {
-      "steps_per_epoch": 300,
-      "epochs": 10,
+      "steps_per_epoch": 400,
+      "epochs": 200,
       "anneal_strategy": "cos",
-      "max_lr": 4e-3,
+      "max_lr": 0.002,
       "pct_start": 0.2
     }
   },
   "trainer": {
-    "epochs": 400,
+    "epochs": 200,
     "save_dir": "saved/",
     "save_period": 50,
     "verbosity": 2,
@@ -68,7 +68,7 @@
     "early_stop": 100,
     "visualize": "wandb",
     "wandb_project": "tts_project",
-    "len_epoch": 200,
+    "len_epoch": 400,
     "grad_norm_clip": 10
   }
 }
